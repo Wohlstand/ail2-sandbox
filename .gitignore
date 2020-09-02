@@ -7,4 +7,6 @@
 !msmake.exe
 *.drv
 *.DRV
+TMP.XMI
+tmp.xmi
 

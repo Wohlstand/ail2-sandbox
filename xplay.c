@@ -52,7 +52,7 @@
 #include "ail.h"        // Audio Interface Library API function header
 #include "gen.h"        // General DOS and system functions
 
-const char VERSION[] = "1.03";
+const char VERSION[] = "1.04";
 
 static const char *const gm_names[] =
 {
@@ -184,8 +184,42 @@ static const char *const gm_names[] =
     "Helicopter",
     "Applause/Noise",
     "Gunshot",
-    // 27..34:  High Q; Slap; Scratch Push; Scratch Pull; Sticks;
-    //          Square Click; Metronome Click; Metronome Bell
+
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>", // 27..34:  High Q; Slap; Scratch Push; Scratch Pull; Sticks;
+    "<Reserved>", //          Square Click; Metronome Click; Metronome Bell
     "Ac Bass Drum",
     "Bass Drum 1",
     "Side Stick",
@@ -233,8 +267,79 @@ static const char *const gm_names[] =
     "Open Cuica",
     "Mute Triangle",
     "Open Triangle",
-    "Shaker", "Jingle Bell", "Bell Tree", "Castanets", "Mute Surdu", "Open Surdu", ""
+    "Shaker",
+    "Jingle Bell",
+    "Bell Tree",
+    "Castanets",
+    "Mute Surdu",
+    "Open Surdu",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>",
+    "<Reserved>"
 };
+
+
+const char *get_instrument_name(unsigned bank, unsigned patch)
+{
+    if(bank == 0)
+        return gm_names[patch];
+    if(bank == 127)
+        return gm_names[patch + 128];
+    return "<unknown>";
+}
+
+int endsWith(const char *str, const char *suffix)
+{
+    size_t lenstr;
+    size_t lensuffix;
+
+    if(!str || !suffix)
+        return 0;
+
+    lenstr = strlen(str);
+    lensuffix = strlen(suffix);
+
+    if(lensuffix >  lenstr)
+        return 0;
+
+    return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
 
 
 /***************************************************************/
@@ -300,7 +405,11 @@ void main(int argc, char *argv[])
     unsigned bank, patch, tc_size, seqnum, treq;
     char key;
     const char *drPath = "sbp2fm.adv";
+    const char *gtlPath = NULL;
+    const char *xmiPath = NULL;
+    const char *xmiPathOrig = NULL;
     int keepWork = 0;
+    int i;
 
     if(!strcmp((char far *) 0x000004f0, "XPLAY"))
     {
@@ -308,26 +417,63 @@ void main(int argc, char *argv[])
         exit(1);
     }
 
-    printf("\nXPLAY version %s                  Copyright (C) 1991, 1992 Miles Design, Inc.\n", VERSION);
+    for(i = 1; i < argc;)
+    {
+        if(!strcmp(argv[i], "-d"))
+        {
+            if(i == argc - 1)
+            {
+                printf("Missing driver filename after -d argument!\n");
+                exit(1);
+            }
+            drPath = argv[i + 1];
+            i += 2;
+            continue;
+        }
+        else if(!strcmp(argv[i], "-g"))
+        {
+            if(i == argc - 1)
+            {
+                printf("Missing global timbre library filename after -g argument!\n");
+                exit(1);
+            }
+            gtlPath = argv[i + 1];
+            i += 2;
+            continue;
+        }
+
+        break;
+    }
+
+    if(i < argc)
+        xmiPath = argv[i];
+    i++;
+
+    seqnum = 0;
+    if(i < argc)
+        seqnum = val(argv[i], 10);
+
+    printf("\nXPLAY version %s  Copyright (C) 1991, 1992 Miles Design, Inc., 2020 Wohlstand\n", VERSION);
     printf("-------------------------------------------------------------------------------\n\n");
 
-    if(argc < 2)
+    if(argc < 2 || !xmiPath)
     {
         printf("This program plays an Extended MIDI (XMIDI) sequence through a \n");
         printf("specified Audio Interface Library V2.0 sound driver.\n\n");
-        printf("Usage: XPLAY XMIDI_filename [driver_filename [sequence_number]]\n");
+        printf("Usage: XPLAY [-d driver_filename] [-g timbre_file_name] XMIDI_filename [sequence_number]\n");
         exit(1);
     }
 
-    seqnum = 0;
-    if(argc == 4) seqnum = val(argv[3], 10);
+    if(endsWith(xmiPath, ".mid"))
+    {
+        xmiPathOrig = xmiPath;
+        spawnlp(P_WAIT, "midiform.exe", "midiform.exe", "tmp.xmi", xmiPath, NULL);
+        xmiPath = "tmp.xmi";
+    }
 
     //
     // Load driver file at seg:0000
     //
-
-    if(argc >= 3)
-        drPath = argv[2];
 
     drvr = load_driver((char *)drPath);
     if(drvr == NULL)
@@ -349,8 +495,7 @@ void main(int argc, char *argv[])
     hdriver = AIL_register_driver(drvr);
     if(hdriver == -1)
     {
-        printf("Driver %s not compatible with linked API version.\n",
-               argv[2]);
+        printf("Driver %s not compatible with linked API version.\n", drPath);
         AIL_shutdown(NULL);
         exit(1);
     }
@@ -364,7 +509,7 @@ void main(int argc, char *argv[])
 
     if(desc->drvr_type != XMIDI_DRVR)
     {
-        printf("Driver %s not an XMIDI driver.\n", argv[2]);
+        printf("Driver %s not an XMIDI driver.\n", drPath);
         AIL_shutdown(NULL);
         exit(1);
     }
@@ -391,10 +536,10 @@ void main(int argc, char *argv[])
     // Load XMIDI data file
     //
 
-    buffer = read_file(argv[1], NULL);
+    buffer = read_file((char *)xmiPath, NULL);
     if(buffer == NULL)
     {
-        printf("Can't load XMIDI file %s.\n", argv[1]);
+        printf("Can't load XMIDI file %s.\n", xmiPath);
         AIL_shutdown(NULL);
         exit(1);
     }
@@ -404,8 +549,13 @@ void main(int argc, char *argv[])
     // supplied by XMIDI driver to GTL filename prefix "SAMPLE."
     //
 
-    strcpy(GTL_filename, "fat.");
-    strcat(GTL_filename, desc->data_suffix);
+    if(!gtlPath)
+    {
+        strcpy(GTL_filename, "fat.");
+        strcat(GTL_filename, desc->data_suffix);
+    }
+    else
+        strcpy(GTL_filename, gtlPath);
 
     //
     // Set up local timbre cache; open Global Timbre Library file
@@ -428,7 +578,7 @@ void main(int argc, char *argv[])
     state = farmalloc(state_size);
     if((hseq = AIL_register_sequence(hdriver, buffer, seqnum, state, NULL)) == -1)
     {
-        printf("Sequence %u not present in XMIDI file \"%s\".\n", seqnum, argv[1]);
+        printf("Sequence %u not present in XMIDI file \"%s\".\n", seqnum, xmiPath);
         AIL_shutdown(NULL);
         exit(1);
     }
@@ -450,7 +600,7 @@ void main(int argc, char *argv[])
         {
             AIL_install_timbre(hdriver, bank, patch, timb);
             farfree(timb);
-            printf("Installed timbre bank %u, patch %u (%s)\n", bank, patch, gm_names[patch]);
+            printf("Installed timbre bank %u, patch %u (%s)\n", bank, patch, get_instrument_name(bank, patch));
         }
         else
         {
@@ -461,19 +611,26 @@ void main(int argc, char *argv[])
         }
     }
 
-    if(GTL != NULL) fclose(GTL);
+    if(GTL != NULL)
+        fclose(GTL);
 
     //
     // Start music playback and set flag to prevent user from
     // launching multiple copies of XPLAY from the DOS shell
     //
 
-    printf("Playing sequence %u from XMIDI file \"%s\" ...\n\n", seqnum, argv[1]);
+    printf("Playing sequence %u from XMIDI file \"%s\" ...\n\n", seqnum, xmiPath);
 
     AIL_start_sequence(hdriver, hseq);
 
     //   strcpy((char far *) 0x000004f0, "XPLAY");
-
+    printf("----------------------\n");
+    if(xmiPathOrig)
+        printf("Song: %s (sequence %d)\n", xmiPathOrig, seqnum);
+    else
+        printf("Song: %s (sequence %d)\n", xmiPath, seqnum);
+    printf("Timbre bank: %s\n", GTL_filename);
+    printf("Driver: %s\n", drPath);
     printf("----------------------\n");
     printf("Press ESC to stop the song.\n");
     printf("----------------------\n");
@@ -512,8 +669,11 @@ void main(int argc, char *argv[])
     // to any front-panel displays
     //
 
+    if(xmiPathOrig)
+        remove(xmiPath);
+
     //   strcpy((char far *) 0x000004f0, "        ");
     printf("XPLAY stopped.\n");
-    AIL_shutdown(argv[1]);
+    AIL_shutdown((char *)xmiPathOrig);
 }
 
