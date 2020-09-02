@@ -1,0 +1,4 @@
+*.obj
+*.adv
+*.exe
+!msmake.exe
