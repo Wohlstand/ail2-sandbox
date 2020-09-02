@@ -1,4 +1,10 @@
 *.obj
+*.OBJ
 *.adv
+*.ADV
 *.exe
+*.EXE
 !msmake.exe
+*.drv
+*.DRV
+
