@@ -67,7 +67,7 @@ sbp1fm.adv: xmidi.asm yamaha.inc ail.inc ail.mac
 # Sound Blaster 16 XMIDI driver
 #
 
-sbp2fm.adv: xmidi.asm yamaha.inc ail.inc ail.mac
+sb16fm.adv: xmidi.asm yamaha.inc ail.inc ail.mac
    tasm /zi /m /w+ /ml /dSB16 xmidi.asm;
    tlink /c /x xmidi;
    exe2bin xmidi.exe sb16fm.adv
