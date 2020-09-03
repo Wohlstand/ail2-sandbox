@@ -63,7 +63,10 @@ DEF_AV_DEPTH    equ 11000000b           ;Default AM/Vibrato depth
 R_PAN_THRESH    equ 27                  ;Force right channel if pan <= n
 L_PAN_THRESH    equ 100                 ;Force left channel if pan >= n
 
-                IFDEF SBPRO2
+                IFDEF SB16
+LEFT_MASK       equ 11101111b
+RIGHT_MASK      equ 11011111b
+                ELSEIFDEF SBPRO2
 LEFT_MASK       equ 11011111b
 RIGHT_MASK      equ 11101111b
                 ELSEIFDEF PASOPL
@@ -87,6 +90,10 @@ SBPRO           equ 1
                 ENDIF
 
                 IFDEF SBPRO2
+SBPRO           equ 1
+                ENDIF
+
+                IFDEF SB16
 SBPRO           equ 1
                 ENDIF
 
@@ -122,6 +129,8 @@ default_IO      LABEL WORD              ;Factory default I/O parameters
                 ELSEIFDEF PROAUDIO
                 dw -1
                 ELSEIFDEF SBPRO1
+                dw 220h
+                ELSEIFDEF SB16
                 dw 220h
                 ELSEIFDEF SBPRO2
                 dw 220h
@@ -504,6 +513,15 @@ set_IO_parms    PROC IO_ADDR            ;Set I/O address parms for adapter
                 mov MIXDATA,ax
                 pop ax
 
+                ELSEIFDEF SB16
+
+                push ax
+                add ax,4
+                mov MIXADDR,ax
+                inc ax
+                mov MIXDATA,ax
+                pop ax
+
                 ENDIF
 
                 mov ADDR_STAT,ax
@@ -748,6 +766,11 @@ detect_device   PROC H,IO_ADDR,IRQ,DMA,DRQ
                 ENDIF
 
                 call set_IO_parms C,[IO_ADDR]
+
+                IFDEF SB16                ;do Ad Lib detection at 2x8, NOT 2x0
+                add DATA_OUT,8            ;(avoids hangups on standard SB)
+                add ADDR_STAT,8
+                ENDIF
 
                 IFDEF SBPRO2              ;do Ad Lib detection at 2x8, NOT 2x0
                 add DATA_OUT,8            ;(avoids hangups on standard SB)

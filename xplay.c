@@ -404,7 +404,7 @@ void main(int argc, char *argv[])
     unsigned long state_size;
     unsigned bank, patch, tc_size, seqnum, treq;
     char key;
-    const char *drPath = "sbp2fm.adv";
+    const char *drPath = "sb16fm.adv";
     const char *gtlPath = NULL;
     const char *xmiPath = NULL;
     const char *xmiPathOrig = NULL;

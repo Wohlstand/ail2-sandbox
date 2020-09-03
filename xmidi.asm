@@ -95,6 +95,11 @@ YMF262          equ 1
 STEREO          equ 1
                 ENDIF
 
+                IFDEF SB16
+YMF262          equ 1
+STEREO          equ 1
+                ENDIF
+
                 IFDEF PASOPL
 YMF262          equ 1
 STEREO          equ 1
