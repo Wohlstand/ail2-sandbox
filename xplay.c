@@ -473,7 +473,7 @@ void main(int argc, char *argv[])
         if(ret != 0 && ret != 18)
         {
             printf("Can't play song, because of MIDI2HMI failure\n");
-            return 1;
+            exit(1);
         }
         xmiPath = "tmp.xmi";
     }
@@ -526,8 +526,10 @@ void main(int argc, char *argv[])
     // driver/hardware for use
     //
 
-    if(!AIL_detect_device(hdriver, desc->default_IO, desc->default_IRQ,
-                          desc->default_DMA, desc->default_DRQ))
+    ret = AIL_detect_device(hdriver, desc->default_IO, desc->default_IRQ, desc->default_DMA, desc->default_DRQ);
+    printf("Detect: i/o: 0x%3X, irq: %d, dma: %d, drq: %d. ret: %d\n", desc->default_IO, desc->default_IRQ, desc->default_DMA, desc->default_DRQ, ret);
+
+    if(!ret)
     {
         printf("Sound hardware not found.\n");
         AIL_shutdown(NULL);
