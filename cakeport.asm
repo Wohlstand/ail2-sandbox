@@ -1007,10 +1007,10 @@ __timbre_found: cmp [si].offset_h,0
 __exit:         ret
 
 __not_found:    cmp bh,127
-                je __bad_rk
-                call report_error C,OFFSET ERR_bad_tr
+                je __bad_rk             ; Wohlstand: Don't spam by warnings
+                ;call report_error C,OFFSET ERR_bad_tr
                 jmp __exit
-__bad_rk:       call report_error C,OFFSET ERR_bad_rk
+__bad_rk:       ;call report_error C,OFFSET ERR_bad_rk
                 jmp __exit
 
 __GTL_too_big:  call report_error C,OFFSET ERR_GTL_size
