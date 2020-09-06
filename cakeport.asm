@@ -38,7 +38,7 @@
 
 ADDRESS_CRTC    MACRO                   ;Get DX=CRTC address at 3B0h (mono)
                 push ax                 ;or 3D0h (color) -- preserves all regs
-                mov dx,03cch            
+                mov dx,03cch
                 in al,dx
                 and al,1
                 shl al,1
@@ -53,7 +53,7 @@ ADDRESS_CRTC    MACRO                   ;Get DX=CRTC address at 3B0h (mono)
 
                 .CODE
 
-                db 'IPD',10h,00h,82h,00h,00h  
+                db 'IPD',10h,00h,82h,00h,00h
 
                 jmp startup             ;Cakewalk function 0
                 jmp shutdown            ;1
@@ -62,12 +62,12 @@ ADDRESS_CRTC    MACRO                   ;Get DX=CRTC address at 3B0h (mono)
                 jmp data_in_queue       ;4
                 jmp read_queue          ;5
                 jmp get_device_data     ;6
-                      
+
 devname         db 'Audio Interface Library CAKEPORT Driver v2.0',0
                 db '   MPU-401: "1" to enable, "2" to disable',0
 MIDI_active     dw 1h
                 db '             Base port address (hex)',0
-def_IO          dw 330h                        
+def_IO          dw 330h
                 db '             IRQ number',0
 def_IRQ         dw 2h
                 db 'AIL driver: "1" to enable, "2" to disable',0
@@ -231,11 +231,11 @@ tail            dw 0
 
 queue           db 256 dup (?)          ;incoming message queue
 
-app_ds          dw ?                            
+app_ds          dw ?
 app_sp          dw ?
 callback        LABEL DWORD
-callback_o      dw ?                            
-callback_s      dw ?                            
+callback_o      dw ?
+callback_s      dw ?
 IRQ_busy        dw ?
 old_ss          dw ?
 old_sp          dw ?
@@ -271,7 +271,7 @@ GTL_base        db 32768 dup (?)        ;reserve 32K for Global Timbre Library
 init_dialog     PROC                    ;Init text dialog box routines
                 USES ds,si,di
 
-                mov dialog_page,1   
+                mov dialog_page,1
 
                 ADDRESS_CRTC
                 mov CRTC_port,dx
@@ -344,7 +344,7 @@ bascalc         PROC HTab,VTab,Page
                 mul [VTab]
                 mov bx,[HTab]
                 shl bx,1
-                add bx,ax       
+                add bx,ax
 
                 mov ax,page_size
                 mul [Page]
@@ -438,7 +438,7 @@ hide_mouse      PROC                    ;hide mouse if mouse in use
                 cmp mouse_active,0
                 je __exit
 
-                mov ax,2                
+                mov ax,2
                 int 33h
 
 __exit:         ret
@@ -571,7 +571,7 @@ __put_char:     mov es:[bx],al
                 inc di
                 cmp di,box_bottom
                 jbe __draw_box
-                
+
                 mov di,0
                 mov si,[TextStr]
 __for_line:     call bascalc C,text_left,text_top,0
@@ -619,7 +619,7 @@ __end_esc:      pop si
 __text_done:    call show_mouse
 
                 inc dialog_page
-                ret                     
+                ret
                 ENDP
 
 ;*****************************************************************************
@@ -659,7 +659,7 @@ __wait:         cmp [Timeout],-1
 __chk_kbd:      mov ax,1100h            ;key struck?
                 int 16h
                 jz __chk_mouse
-                
+
                 mov ax,0h               ;yes, clear keystroke and return
                 int 16h
                 jmp __exit
@@ -778,11 +778,11 @@ __error:        mov ax,0
 find_proc       PROC                    ;Return DX:AX -> function AX
                 les bx,AIL_vectors      ;ES:BX -> driver procedure table
 
-__find_proc:    mov cx,es:[bx]          ;search for requested function in 
+__find_proc:    mov cx,es:[bx]          ;search for requested function in
                 cmp cx,ax               ;driver procedure table
                 je __found
                 add bx,4
-                cmp cx,-1               
+                cmp cx,-1
                 jne __find_proc
 
                 mov ax,0                ;return 0: function not available
@@ -805,9 +805,9 @@ AIL             PROC                    ;Call function AX in AIL driver
                 cmp dx,0
                 je __invalid_call
 
-__do_call:      push dx                 ;call driver function via stack 
+__do_call:      push dx                 ;call driver function via stack
                 push ax
-                retf                    
+                retf
 
 __invalid_call: ret                     ;return DX:AX = 0 if call failed
 
@@ -912,7 +912,7 @@ AIL_release_sequence_handle PROC
 ;*****************************************************************************
 AIL_INT8        PROC                    ;Perform serve_driver() calls to AIL
                                         ;driver for possible TVFX maintenance
-                cmp timer_busy,0     
+                cmp timer_busy,0
                 je __no_reentry
                 jmp __serve_Cake
 
@@ -936,7 +936,7 @@ __no_reentry:   mov timer_busy,1        ;avoid re-entry or undesirable calls
                 sub timer_accum,CW_RATE
 
                 call AIL_serve_driver
-                         
+
 __restore_regs: pop ds
                 pop es
                 pop bp
@@ -961,7 +961,7 @@ setup_timbre    PROC Bank,Num
 
                 call AIL_timbre_status C,0,[Bank],[Num]
                 cmp ax,0
-                jne __exit              ;timbre already installed or not 
+                jne __exit              ;timbre already installed or not
                                         ;needed by synthesizer, exit
                 mov ax,[Num]
                 mov accums[0],ax
@@ -969,7 +969,7 @@ setup_timbre    PROC Bank,Num
                 mov accums[2],ax
                 mov accums[4],PATCH_BANK_SEL
 
-                cmp GTL_seg,0   
+                cmp GTL_seg,0
                 jne __GTL_valid
                 call report_error C,OFFSET ERR_no_GTL
                 jmp __exit
@@ -983,7 +983,7 @@ __GTL_valid:    mov ds,GTL_seg
 __chk_entry:    mov al,[si].tag.num
                 mov ah,[si].tag.bank
 
-                cmp ah,-1               
+                cmp ah,-1
                 je __not_found          ;end of GTL reached, timbre not found
 
                 cmp bx,ax
@@ -1094,7 +1094,7 @@ put_MIDI_byte   PROC Data:BYTE          ;Send CV messages to AIL driver
                 mov cv_status,0         ;else clear running status
                 jmp __exit              ;...and exit
 
-__new_status:   mov cv_status,ax        
+__new_status:   mov cv_status,ax
                 mov cv_bytecnt,0
                 jmp __exit
 
@@ -1106,10 +1106,10 @@ __data:         mov dx,cv_status
                 cmp bx,8
                 jae __new_status
                 mov cv_data[bx],al
-                inc cv_bytecnt          
+                inc cv_bytecnt
 
                 and dx,0f0h             ;mask out channel number
-                mov cx,1               
+                mov cx,1
                 cmp dx,0c0h             ;Program Change?
                 je __chk_complete       ;yes, 1 data byte needed
                 cmp dx,0d0h             ;Channel Pressure?
@@ -1140,7 +1140,7 @@ __norm_channel: mov al,cv_data[0]
 
                 inc timer_busy
                 inc IRQ_busy            ;avoid callback function re-entry
-                push cx               
+                push cx
                 call intercept_timbre_request C,cx,si,di
                 mov di,ax
 
@@ -1211,7 +1211,7 @@ __exit:         ret
 
 ;*****************************************************************************
 MPU_ISR         PROC                    ;Interrupt service routine for MPU-401
-                
+
                 push dx
                 push ax
                 cld
@@ -1237,7 +1237,7 @@ __read_byte:    mov dx,def_IO
                 push es
                 call stuff_byte C
                 pop es
-                pop cx 
+                pop cx
                 pop bx
                 jmp __exit
 
@@ -1253,7 +1253,7 @@ __exit:         pop ax
 ;*****************************************************************************
                 ;
                 ;void startup(void far *callback, int stack_base, int stack)
-                ;            
+                ;
 
 startup         PROC
 
@@ -1267,14 +1267,14 @@ startup         PROC
                 call close_dialog
 
                 mov ax,ds
-                mov app_ds,ax                 
-                mov ax,[bp+06h]                   
-                mov dx,[bp+08h]                   
-                mov callback_o,ax                 
-                mov callback_s,dx                 
-                mov ax,[bp+0Ah]                   
-                add ax,[bp+0Ch]                   
-                mov app_sp,ax                 
+                mov app_ds,ax
+                mov ax,[bp+06h]
+                mov dx,[bp+08h]
+                mov callback_o,ax
+                mov callback_s,dx
+                mov ax,[bp+0Ah]
+                add ax,[bp+0Ch]
+                mov app_sp,ax
 
                 mov timer_trapped,0
                 mov timer_busy,0
@@ -1433,7 +1433,7 @@ __exit:         pop bp
                 ;
 
 shutdown        PROC
-       
+
                 cmp AIL_active,0
                 je __chk_MIDI
                 call AIL_shutdown_driver C,0,0,0
@@ -1448,7 +1448,7 @@ __chk_MIDI:     cmp MIDI_active,0
                 je __exit
                 mov ax,default_ISR_o
                 pushf                   ;replace old IRQ handler
-                cli                   
+                cli
                 mov cx,0
                 mov es,cx
                 mov bx,def_IRQ
@@ -1461,7 +1461,7 @@ __chk_MIDI:     cmp MIDI_active,0
                 out 21h,al
                 jmp $+2
                 POP_F
-                                        
+
 __exit:         ret
                 ENDP
 
@@ -1484,9 +1484,9 @@ clear_to_send   PROC
                 jnz __exit
                 mov ax,1
 
-__exit:         ret 
+__exit:         ret
                 ENDP
-                               
+
 ;*****************************************************************************
                 ;
                 ;void send_bytes(int byte1, int byte2, ...)
@@ -1508,13 +1508,13 @@ send_bytes      PROC
                 cmp es:[8*4+2],ax
                 jne __trap_timer
 
-__send_byte:    push bp                 ;send each message byte to the                
+__send_byte:    push bp                 ;send each message byte to the
                 mov bp,sp               ;AIL driver's MIDI data stream
-                push si                
+                push si
                 mov si,0008
-__send_AIL:     mov al,[bp+si]                   
+__send_AIL:     mov al,[bp+si]
                 call put_MIDI_byte C,ax
-                add si,0002                      
+                add si,0002
                 test WORD PTR [bp+si],8000h
                 je __send_AIL
                 pop si
@@ -1524,7 +1524,7 @@ __exit:         ret
 
 __trap_timer:   pushf                   ;trap 291.3Hz. Cakewalk timer tick
                 cli                     ;to provide TVFX driver service
-                cmp AIL_rate,-1         
+                cmp AIL_rate,-1
                 je __trapped            ;(no service required)
 
                 mov ax,0
@@ -1561,7 +1561,7 @@ data_in_queue   PROC                    ;Return 1 if any data in queue
 
 __exit:         ret
                 ENDP
-                
+
 ;*****************************************************************************
                 ;
                 ;int read_queue(void)
@@ -1593,13 +1593,13 @@ __exit:         ret
                 ;void get_device_data(char far *data)
                 ;
 
-get_device_data PROC                
-                push bp             
-                mov bp,sp                        
+get_device_data PROC
+                push bp
+                mov bp,sp
 
                 call init_dialog
 
-                lea ax,AIL_base         ;get default I/O parameters 
+                lea ax,AIL_base         ;get default I/O parameters
                 lea bx,AIL_fn           ;for current AIL.ADV driver
                 call load_file C,bx,cs,ax,SIZE AIL_base
                 cmp ax,0
@@ -1628,13 +1628,13 @@ __set_IO:       mov AIL_IO_text,al
                 mov ax,0                        ;truncate setup menu
 __set_IRQ:      mov AIL_IRQ_text,al
 
-__chk_MIDI:     les bx,[bp+06]                   
+__chk_MIDI:     les bx,[bp+06]
                 mov ax,OFFSET devname
-                mov es:[bx],ax                   
-                mov es:[bx+02],cs                
-                mov sp,bp                        
-                pop bp                           
-                ret                                
+                mov es:[bx],ax
+                mov es:[bx+02],cs
+                mov sp,bp
+                pop bp
+                ret
                 ENDP
 
 ;*****************************************************************************
