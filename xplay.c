@@ -408,6 +408,7 @@ void main(int argc, char *argv[])
     const char *gtlPath = NULL;
     const char *xmiPath = NULL;
     const char *xmiPathOrig = NULL;
+    int ret;
     int keepWork = 0;
     int i;
 
@@ -467,7 +468,13 @@ void main(int argc, char *argv[])
     if(endsWith(xmiPath, ".mid"))
     {
         xmiPathOrig = xmiPath;
-        spawnlp(P_WAIT, "midiform.exe", "midiform.exe", "tmp.xmi", xmiPath, NULL);
+        ret = spawnlp(P_WAIT, "midiform.exe", "midiform.exe", "tmp.xmi", xmiPath, NULL);
+        printf("return code %d\n", ret);
+        if(ret != 0 && ret != 18)
+        {
+            printf("Can't play song, because of MIDI2HMI failure\n");
+            return 1;
+        }
         xmiPath = "tmp.xmi";
     }
 
@@ -664,13 +671,13 @@ void main(int argc, char *argv[])
         }
     }
 
+    if(xmiPathOrig)
+        remove(xmiPath);
+
     //
     // Shut down API and all installed drivers; write XMIDI filename
     // to any front-panel displays
     //
-
-    if(xmiPathOrig)
-        remove(xmiPath);
 
     //   strcpy((char far *) 0x000004f0, "        ");
     printf("XPLAY stopped.\n");

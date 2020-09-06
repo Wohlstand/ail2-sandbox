@@ -4,6 +4,8 @@
 *.ADV
 *.exe
 *.EXE
+!dosbox/tools/bc/bin/*.exe
+!dosbox/tools/bc/BIN/*.EXE
 !msmake.exe
 *.drv
 *.DRV
