@@ -50,25 +50,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#ifndef __linux__
-#include <dos.h>
-#include <alloc.h>
+
+#ifdef _WIN32
+#   include <windows.h>
+#elif !defined(__unix__)
+#   include <dos.h>
+#   include <alloc.h>
 #endif
+
 #include <string.h>
+
 #ifdef __linux__
-#include <sys/stat.h>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#define far /* workarounds */
-#define near
-#define farfree free
-#define far_memmove memmove
-#define farmalloc malloc
-#define fileno(x) (x)
-#else
-#include <io.h>
-#include <conio.h>
+#   include <sys/stat.h>
+#   include <unistd.h>
+#   include <termios.h>
+#   include <fcntl.h>
+#   define far /* workarounds */
+#   define near
+#   define farfree free
+#   define far_memmove memmove
+#   define farmalloc malloc
+#   define fileno(x) (x)
+#elif defined(_WIN32)
+#   include <sys/stat.h>
+#   define far /* workarounds */
+#   define near
+#   define farfree free
+#   define far_memmove memmove
+#   define farmalloc malloc
+#   define fileno(x) (x)
+#elif defined(__unix__)
+#   error "FIXME: Implement support for this platform"
+#else /* DOS */
+#   include <io.h>
+#   include <conio.h>
+#   define MIDIFORM_DOS
 #endif
 #include <ctype.h>
 
@@ -76,7 +92,7 @@
 #define MAX_PATH 2048
 #endif
 
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
 
 static FILE  *s_tracked_files[1000];
 static size_t s_tracked_files_count = 0;
@@ -85,7 +101,10 @@ static FILE *my_fopen(const char *filename, const char *mode)
 {
     FILE *f = fopen(filename, mode);
     if(!f)
+    {
+        perror("Can't open file");
         return NULL;
+    }
     if(s_tracked_files_count >= 1000)
         return f; /* don't track this! */
     s_tracked_files[s_tracked_files_count++] = f;
@@ -200,7 +219,7 @@ int get_disk_error(void)
     return 7;
 }
 
-int filelength(FILE *f)
+int form_filelength(FILE *f)
 {
     off_t prev;
     off_t siz;
@@ -218,6 +237,13 @@ int strnicmp(const char *a, const char *b, size_t max)
 {
     int ca, cb;
     size_t len = 0;
+
+    if(!a)
+        a = "";
+
+    if(!b)
+        b = "";
+
     do
     {
         ca = (unsigned char) * a++;
@@ -227,6 +253,7 @@ int strnicmp(const char *a, const char *b, size_t max)
         len++;
     }
     while(ca == cb && ca != '\0' && len < max);
+
     return ca - cb;
 }
 
@@ -239,6 +266,37 @@ static uint32_t file_size(const char *filename)
     return st.st_size;
 }
 
+#ifdef _WIN32
+static uint8_t *read_file(const char *szName, void *dest)
+{
+    uint8_t *pData;
+    int  wSize;
+    FILE *f;
+
+    (void)dest;
+
+    f = fopen(szName, "rb");
+    fseek(f, 0, SEEK_END);
+    wSize = (int)ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if((pData = (uint8_t *)malloc(wSize)) == NULL)
+    {
+        fclose(f);
+        return(NULL);
+    }
+
+    if(fread(pData, 1, wSize, f) != (size_t)wSize)
+    {
+        fclose(f);
+        free(pData);
+        return(NULL);
+    }
+
+    return(pData);
+}
+
+#else
 static uint8_t *read_file(const char *szName, void *dest)
 {
     uint8_t *pData;
@@ -269,9 +327,21 @@ static uint8_t *read_file(const char *szName, void *dest)
     close(hFile);
     return(pData);
 }
+#endif
 
 int get_pos(int *y, int *x)
 {
+#ifdef _WIN32
+    POINT p;
+    *y = 0;
+    *x = 0;
+
+    if(!GetCursorPos(&p))
+        return 1;
+    *y = (int)p.x;
+    *x = (int)p.y;
+
+#else
     char buf[30] = {0};
     int ret, i, pow;
     char ch;
@@ -315,6 +385,7 @@ int get_pos(int *y, int *x)
         * y = *y + (buf[i] - '0') * pow;
 
     tcsetattr(0, TCSANOW, &restore);
+#endif
     return 0;
 }
 
@@ -322,7 +393,7 @@ int get_pos(int *y, int *x)
 
 static char *my_gets(char *out, int max)
 {
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
     size_t l;
     char *ret = fgets(out, max, stdin);
 
@@ -340,7 +411,7 @@ static char *my_gets(char *out, int max)
 #endif
 }
 
-const char VERSION[] = "1.03";
+static const char VERSION[] = "1.03";
 
 #define DEFAULT_QUAN 120   /* Default quantization rate in hertz                */
 #define MAX_TRKS 64        /* Max. # of tracks in MIDI input file               */
@@ -458,16 +529,24 @@ typedef struct
 }
 XMIDI;
 
-char tmp_fn[9] = "MFXXXXXX";
-char tmp_fn2[9] = "MFXXXXXX";
-char out_fn[MAX_PATH];
+static char tmp_fn[9] = "MFXXXXXX";
+static char out_fn[MAX_PATH];
 
 static void tmpReset(char *buf)
 {
-    strncpy(buf, "MFXXXXXX", 9);
+    int f;
+    strncpy(buf, "MFXXXXXX\0", 9);
+
+#if !defined(MIDIFORM_DOS)
+    f = mkstemp(buf);
+    close(f);
+#else
+    (void) f;
+    mktemp(buf);
+#endif
 }
 
-#ifndef __linux__
+#ifdef MIDIFORM_DOS
 union REGS inregs, outregs;
 #endif
 
@@ -557,7 +636,7 @@ void abend(int err, intptr_t info_1, intptr_t info_2)
 /***************************************************************/
 void locate(int x, int y)
 {
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
     printf("\033[%d;%dH", y, x);
 #else
     inregs.h.ah = 0x0f;
@@ -573,7 +652,7 @@ void locate(int x, int y)
 
 int curpos_x(void)
 {
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
     int x = 0, y = 0;
     get_pos(&y, &x);
     return x;
@@ -591,7 +670,7 @@ int curpos_x(void)
 
 int curpos_y(void)
 {
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
     int x = 0, y = 0;
     get_pos(&y, &x);
     return y;
@@ -690,7 +769,7 @@ int IFF_append_FORM(FILE *out, char *FORM_type, FILE *in)
     fseek(in, 0L, SEEK_SET);
     fflush(in);
 
-    len = filelength(fileno(in));
+    len = form_filelength(fileno(in));
 
     blen = wswap(len + (len & 1L) + 4L);
 
@@ -1335,7 +1414,7 @@ void XMIDI_compile(char *src_fn, FILE *out, uint16_t quant)
         abend(1, get_disk_error(), (intptr_t) MIDI.seq_fn);
     abend(MIDI_construct(&MIDI), (intptr_t) MIDI.seq_fn, 0L);
 
-#ifdef __linux__
+#ifndef MIDIFORM_DOS
     XMIDI.EVNT.avail = 999999;
 #else
     XMIDI.EVNT.avail = farcoreleft() - 16384L;
@@ -1504,11 +1583,6 @@ int main(int argc, char *argv[])
     seq_cnt = -1;
 
     tmpReset(tmp_fn);
-#ifdef __linux__
-    mkstemp(tmp_fn);
-#else
-    mktemp(tmp_fn);
-#endif
     tmp = my_fopen(tmp_fn, "w+b");
     if(tmp == NULL) abend(1, 4L, (intptr_t) tmp_fn);
     fputs("INFO", tmp);
@@ -1565,13 +1639,8 @@ int main(int argc, char *argv[])
         }
 
         tmpReset(tmp_fn);
-#ifdef __linux__
-        mkstemp(tmp_fn);
-#else
-        mktemp(tmp_fn);
-#endif
         tmp = my_fopen(tmp_fn, "w+b");
-        if(tmp == NULL) abend(1, 4L, (intptr_t)tmp_fn);
+        if(tmp == NULL) abend(1, 4L, (intptr_t) tmp_fn);
 
         XMIDI_compile(seq_fn, tmp, quant);
         fseek(tmp, 0L, SEEK_SET);
