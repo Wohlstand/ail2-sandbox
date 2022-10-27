@@ -72,6 +72,10 @@
 #endif
 #include <ctype.h>
 
+#ifndef MAX_PATH
+#define MAX_PATH 2048
+#endif
+
 #ifdef __linux__
 
 static FILE  *s_tracked_files[1000];
@@ -230,7 +234,8 @@ int strnicmp(const char *a, const char *b, size_t max)
 static uint32_t file_size(const char *filename)
 {
     struct stat st;
-    stat(filename, &st);
+    if(stat(filename, &st) < 0)
+        return 0;
     return st.st_size;
 }
 
@@ -455,7 +460,7 @@ XMIDI;
 
 char tmp_fn[9] = "MFXXXXXX";
 char tmp_fn2[9] = "MFXXXXXX";
-char out_fn[128];
+char out_fn[MAX_PATH];
 
 static void tmpReset(char *buf)
 {
@@ -952,6 +957,7 @@ uint16_t MIDI_event_type(MIDI far *MIDI)
         case EV_META:
             return EV_META;
         }
+        /* fallthrough */
     default:
         return EV_INVALID;
     }
@@ -1004,6 +1010,7 @@ uint16_t MIDI_get_event(MIDI far *MIDI, int trk)
                 MIDI->trk_ptr[trk] = temp;
                 break;
             }
+            /* fallthrough */
         case EV_SYSEX:
         case EV_ESC:
             len = MIDI_get_vln(MIDI, trk);
@@ -1420,7 +1427,7 @@ int main(int argc, char *argv[])
     int i, done, seq_cnt;
     int x /*, y*/;
     uint16_t quant;
-    static char seq_fn[128];
+    static char seq_fn[MAX_PATH];
     static char buff[5];
     FILE *tmp, *XMID;
     uint32_t info_len;
@@ -1435,18 +1442,18 @@ int main(int argc, char *argv[])
 
     for(i = 1; i < argc; i++)
     {
-        if(argv[i][0] != '/')
+        if(argv[i][0] != '-' || argv[i][1] != '-')
         {
             ++strcnt;
             if(strcnt == 1)
-                strcpy(out_fn, argv[i]);
+                strncpy(out_fn, argv[i], MAX_PATH);
             if(strcnt == 2)
                 infile = i;
         }
-        else if(!strnicmp(argv[i], "/Q:", 3))
+        else if(!strnicmp(argv[i], "--Q=", 4))
         {
             if(!infile)
-                quant = (int16_t) strtol((char far *)&argv[i][3], NULL, 10);
+                quant = (int16_t) strtol((char far *)&argv[i][4], NULL, 10);
         }
         else
         {
@@ -1460,9 +1467,9 @@ int main(int argc, char *argv[])
         printf("This program converts Standard MIDI Format 0 or Format 1 sequence files to\n");
         printf("the XMIDI format used by the Audio Interface Library Version 2.X drivers.\n\n");
 
-        printf("Usage: MIDIFORM [/Q:nn] output_filename [[input_filename...] | [< rspfile]]\n\n");
+        printf("Usage: MIDIFORM [--Q=nn] output_filename [[input_filename...] | [< rspfile]]\n\n");
 
-        printf("where /Q:nn = quantization rate in hertz (default=%u Hz.)\n", DEFAULT_QUAN);
+        printf("where --Q=nn = quantization rate in hertz (default=%u Hz.)\n", DEFAULT_QUAN);
         printf("    rspfile = list of newline-separated MIDI sequence files for input\n");
         return 1;
     }
@@ -1521,12 +1528,14 @@ int main(int argc, char *argv[])
     done = seq_cnt = 0;
     while(!done)
     {
-        strcpy(seq_fn, "");
+        strncpy(seq_fn, "", MAX_PATH);
         if(infile)
+        {
             if(infile >= argc)
                 done = 1;
             else
-                strcpy(seq_fn, argv[infile++]);
+                strncpy(seq_fn, argv[infile++], MAX_PATH);
+        }
         else
         {
             locate(0, curpos_y());
