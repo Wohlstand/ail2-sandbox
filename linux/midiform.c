@@ -296,7 +296,7 @@ static uint8_t *read_file(const char *szName, void *dest)
     return(pData);
 }
 
-#else
+#else /* _WIN32 */
 static uint8_t *read_file(const char *szName, void *dest)
 {
     uint8_t *pData;
@@ -327,7 +327,7 @@ static uint8_t *read_file(const char *szName, void *dest)
     close(hFile);
     return(pData);
 }
-#endif
+#endif /* _WIN32 */
 
 int get_pos(int *y, int *x)
 {
@@ -389,7 +389,7 @@ int get_pos(int *y, int *x)
     return 0;
 }
 
-#endif
+#endif /* MIDIFORM_DOS */
 
 static char *my_gets(char *out, int max)
 {
